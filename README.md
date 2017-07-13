@@ -46,3 +46,11 @@ nobots "bomb.gz" {
   regexp "^bot"
 }
 ```
+
+## How to create a bomb
+In Linux is really easy, for example you can use the following command.
+
+```
+dd if=/dev/zero bs=1M count=10240 | gzip > 10G.gzip
+```
+
