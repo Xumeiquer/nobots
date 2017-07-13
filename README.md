@@ -32,4 +32,5 @@ index a12ff0e..3239bb0 100644
 ~
 ```
 
+Once the patch is applied you must compule Caddy by running `github.com/mholt/caddy/caddy/build.bash/` from this directory `github.com/mholt/caddy/caddy/`
 
