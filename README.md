@@ -34,3 +34,15 @@ index a12ff0e..3239bb0 100644
 
 Once the patch is applied you must compule Caddy by running `github.com/mholt/caddy/caddy/build.bash/` from this directory `github.com/mholt/caddy/caddy/`
 
+## Configuration
+
+The configuration is quite easy. First of all place the bomb path then set a list of strings that match with the UA you want to ban from quering your site. You can set a regexp as well.
+
+```
+nobots "bomb.gz" {
+  "Googlebot/2.1 (+http://www.googlebot.com/bot.html)"
+  "Bing Bot"
+  "Yahoo Bot"
+  regexp "^bot"
+}
+```
