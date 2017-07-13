@@ -115,7 +115,6 @@ func (b BotUA) IsEvil(rua string) bool {
 func serveBomb(w http.ResponseWriter, r *http.Request, bomb string) (int, error) {
 	file, err := ioutil.ReadFile(bomb)
 	if err != nil {
-		fmt.Println(err)
 		return http.StatusNotFound, nil
 	}
 
