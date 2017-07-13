@@ -1,4 +1,4 @@
-# nobots
+# NoBots
 A web bots protection plugin for caddy
 
 For manual installation you shoud apply the following patch
@@ -47,7 +47,7 @@ nobots "bomb.gz" {
 }
 ```
 
-## How to create a bomb
+## How to create a bomb
 In Linux is really easy, for example you can use the following command.
 
 ```
