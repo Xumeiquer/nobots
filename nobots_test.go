@@ -75,7 +75,8 @@ func TestSetup1(t *testing.T) {
 	}
 }
 
-func TestNobots(t *testing.T) {
+func TestNobotsWithPublic(t *testing.T) {
+	funcName := "TestNobotsWithPublic"
 	myHandler := func(w http.ResponseWriter, r *http.Request) (int, error) {
 
 		return http.StatusOK, nil
@@ -87,23 +88,26 @@ func TestNobots(t *testing.T) {
 		{
 			Next: httpserver.HandlerFunc(myHandler),
 			UA: &botUA{
-				bomb: filename,
-				uas:  []string{"Bot"},
-				re:   nil,
+				bomb:   filename,
+				uas:    []string{"Bot"},
+				re:     nil,
+				public: []*regexp.Regexp{regexp.MustCompile("/public")},
 			},
 		}, {
 			Next: httpserver.HandlerFunc(myHandler),
 			UA: &botUA{
-				bomb: filename,
-				uas:  nil,
-				re:   []*regexp.Regexp{regexp.MustCompile("^Bot")},
+				bomb:   filename,
+				uas:    nil,
+				re:     []*regexp.Regexp{regexp.MustCompile("^Bot")},
+				public: []*regexp.Regexp{regexp.MustCompile("/public")},
 			},
 		}, {
 			Next: httpserver.HandlerFunc(myHandler),
 			UA: &botUA{
-				bomb: filename,
-				uas:  nil,
-				re:   nil,
+				bomb:   filename,
+				uas:    nil,
+				re:     nil,
+				public: nil,
 			},
 		},
 	}
@@ -130,7 +134,7 @@ func TestNobots(t *testing.T) {
 
 	tests := []testType{
 		{
-			path:   "/",
+			path:   "/private",
 			ua:     "Bot",
 			result: http.StatusOK,
 			header: headerType{
@@ -139,7 +143,25 @@ func TestNobots(t *testing.T) {
 				length:   fileSize,
 			},
 		}, {
-			path:   "/",
+			path:   "/this/is/public",
+			ua:     "Bot",
+			result: http.StatusOK,
+			header: headerType{
+				type_:    "",
+				encoding: "",
+				length:   "",
+			},
+		}, {
+			path:   "/public",
+			ua:     "Bot",
+			result: http.StatusOK,
+			header: headerType{
+				type_:    "",
+				encoding: "",
+				length:   "",
+			},
+		}, {
+			path:   "/private",
 			ua:     "Got",
 			result: http.StatusOK,
 			header: headerType{
@@ -148,7 +170,16 @@ func TestNobots(t *testing.T) {
 				length:   "",
 			},
 		}, {
-			path:   "/",
+			path:   "/public",
+			ua:     "Got",
+			result: http.StatusOK,
+			header: headerType{
+				type_:    "",
+				encoding: "",
+				length:   "",
+			},
+		}, {
+			path:   "/private",
 			ua:     "",
 			result: http.StatusOK,
 			header: headerType{
@@ -159,37 +190,183 @@ func TestNobots(t *testing.T) {
 		},
 	}
 
-	for _, rw := range rws {
-		for i, test := range tests {
+	for i, rw := range rws {
+		for j, test := range tests {
 			req, err := http.NewRequest("GET", test.path, nil)
 			if err != nil {
-				t.Fatalf("Test %d: Could not create HTTP request: %v", i, err)
+				t.Fatalf("Test %d: Could not create HTTP request: %v", j, err)
 			}
-			req.Header.Set("User-Agent", test.ua)
 
+			req.Header.Set("User-Agent", test.ua)
 			rec := httptest.NewRecorder()
 			result, err := rw.ServeHTTP(rec, req)
+
 			if err != nil {
-				t.Fatalf("Test %d: Could not ServeHTTP: %v", i, err)
-			}
-			if result != test.result {
-				t.Errorf("Test %d: Expected status code %d but was %d",
-					i, test.result, result)
+				t.Fatalf("Test %d: Could not ServeHTTP: %v", j, err)
 			}
 
-			// Nobots has rules defined
+			if result != test.result {
+				t.Errorf("Test %d: Expected status code %d but was %d",
+					j, test.result, result)
+			}
+
 			if len(rw.UA.uas) > 0 || len(rw.UA.re) > 0 {
 				if rec.HeaderMap.Get("Content-Type") != test.header.type_ {
-					t.Errorf("Test %d: Expected Content-Type %s but found %s",
-						i, test.header.type_, rec.HeaderMap.Get("Content-Type"))
+					t.Errorf("Test %d-%d (%s): Expected Content-Type '%s' but found '%s'",
+						i, j, funcName, test.header.type_, rec.HeaderMap.Get("Content-Type"))
 				}
 				if rec.HeaderMap.Get("Content-Encoding") != test.header.encoding {
-					t.Errorf("Test %d: Expected Content-Encoding %s but found %s",
-						i, test.header.encoding, rec.HeaderMap.Get("Content-Encoding"))
+					t.Errorf("Test %d-%d (%s): Expected Content-Encoding '%s' but found '%s'",
+						i, j, funcName, test.header.encoding, rec.HeaderMap.Get("Content-Encoding"))
 				}
 				if rec.HeaderMap.Get("Content-Length") != test.header.length {
-					t.Errorf("Test %d: Expected Content-Length %s but found %s",
-						i, test.header.length, rec.HeaderMap.Get("Content-Length"))
+					t.Errorf("Test %d-%d (%s): Expected Content-Length '%s' but found '%s'",
+						i, j, funcName, test.header.length, rec.HeaderMap.Get("Content-Length"))
+				}
+			}
+		}
+	}
+
+}
+
+func TestNobots(t *testing.T) {
+	funcName := "TestNobots"
+	myHandler := func(w http.ResponseWriter, r *http.Request) (int, error) {
+
+		return http.StatusOK, nil
+	}
+
+	filename := "nobots.go"
+
+	rws := []BotUA{
+		{
+			Next: httpserver.HandlerFunc(myHandler),
+			UA: &botUA{
+				bomb:   filename,
+				uas:    []string{"Bot"},
+				re:     nil,
+				public: nil,
+			},
+		}, {
+			Next: httpserver.HandlerFunc(myHandler),
+			UA: &botUA{
+				bomb:   filename,
+				uas:    nil,
+				re:     []*regexp.Regexp{regexp.MustCompile("^Bot")},
+				public: nil,
+			},
+		}, {
+			Next: httpserver.HandlerFunc(myHandler),
+			UA: &botUA{
+				bomb:   filename,
+				uas:    nil,
+				re:     nil,
+				public: nil,
+			},
+		},
+	}
+
+	file, err := ioutil.ReadFile(filename)
+	if err != nil {
+
+	}
+
+	fileSize := strconv.Itoa(len(file))
+
+	type headerType struct {
+		type_    string
+		encoding string
+		length   string
+	}
+
+	type testType struct {
+		path   string
+		ua     string
+		result int
+		header headerType
+	}
+
+	tests := []testType{
+		{
+			path:   "/private",
+			ua:     "Bot",
+			result: http.StatusOK,
+			header: headerType{
+				type_:    "text/html; charset=UTF-8",
+				encoding: "gzip",
+				length:   fileSize,
+			},
+		}, {
+			path:   "/public",
+			ua:     "Bot",
+			result: http.StatusOK,
+			header: headerType{
+				type_:    "text/html; charset=UTF-8",
+				encoding: "gzip",
+				length:   fileSize,
+			},
+		}, {
+			path:   "/private",
+			ua:     "Got",
+			result: http.StatusOK,
+			header: headerType{
+				type_:    "",
+				encoding: "",
+				length:   "",
+			},
+		}, {
+			path:   "/public",
+			ua:     "Got",
+			result: http.StatusOK,
+			header: headerType{
+				type_:    "",
+				encoding: "",
+				length:   "",
+			},
+		}, {
+			path:   "/private",
+			ua:     "",
+			result: http.StatusOK,
+			header: headerType{
+				type_:    "",
+				encoding: "",
+				length:   "",
+			},
+		},
+	}
+
+	for i, rw := range rws {
+		for j, test := range tests {
+			req, err := http.NewRequest("GET", test.path, nil)
+			if err != nil {
+				t.Fatalf("Test %d: Could not create HTTP request: %v", j, err)
+			}
+
+			req.Header.Set("User-Agent", test.ua)
+			rec := httptest.NewRecorder()
+			result, err := rw.ServeHTTP(rec, req)
+
+			if err != nil {
+				t.Fatalf("Test %d: Could not ServeHTTP: %v", j, err)
+			}
+
+			if result != test.result {
+				t.Errorf("Test %d: Expected status code %d but was %d",
+					j, test.result, result)
+			}
+
+			if len(rw.UA.uas) > 0 || len(rw.UA.re) > 0 {
+				if rec.HeaderMap.Get("Content-Type") != test.header.type_ {
+					t.Errorf("Test %d-%d (%s): Expected Content-Type '%s' but found '%s'",
+						i, j, funcName, test.header.type_, rec.HeaderMap.Get("Content-Type"))
+				}
+				if rec.HeaderMap.Get("Content-Encoding") != test.header.encoding {
+					t.Errorf("Test %d-%d (%s): Expected Content-Encoding '%s' but found '%s'",
+						i, j, funcName, test.header.encoding, rec.HeaderMap.Get("Content-Encoding"))
+				}
+				if rec.HeaderMap.Get("Content-Length") != test.header.length {
+					t.Errorf("Test %d-%d (%s): Expected Content-Length '%s' but found '%s'",
+						i, j, funcName, test.header.length, rec.HeaderMap.Get("Content-Length"))
 				}
 			}
 		}

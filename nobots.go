@@ -13,9 +13,10 @@ import (
 
 // botUA config representation
 type botUA struct {
-	uas  []string
-	bomb string
-	re   []*regexp.Regexp
+	uas    []string
+	bomb   string
+	re     []*regexp.Regexp
+	public []*regexp.Regexp
 }
 
 // BotUA plugin struct
@@ -72,6 +73,15 @@ func parseUA(c *caddy.Controller) (*botUA, error) {
 					return nil, fmt.Errorf("%s", err)
 				}
 				ua.re = append(ua.re, re)
+			case "public":
+				if !c.NextArg() {
+					return nil, c.ArgErr()
+				}
+				re, err := regexp.Compile(c.Val())
+				if err != nil {
+					return nil, fmt.Errorf("%s", err)
+				}
+				ua.public = append(ua.public, re)
 			default:
 				ua.uas = append(ua.uas, c.Val())
 			}
@@ -84,11 +94,13 @@ func (b BotUA) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, error) {
 	// Get request UA
 	rua := r.UserAgent()
 
-	// Check if the UA is a evil one
-	if b.IsEvil(rua) {
-		return serveBomb(w, r, b.UA.bomb)
+	// Avoid ban UA for public URI
+	if !b.IsPublicURI(r.URL.Path) {
+		// Check if the UA is a evil one
+		if b.IsEvil(rua) {
+			return serveBomb(w, r, b.UA.bomb)
+		}
 	}
-
 	// Nothing happens carry on with next stuff
 	return b.Next.ServeHTTP(w, r)
 }
@@ -112,6 +124,18 @@ func (b BotUA) IsEvil(rua string) bool {
 		}
 	}
 	// UA is not evil
+	return false
+}
+
+// IsPublicURI check if the requested URI is defined as public or not
+func (b BotUA) IsPublicURI(uri string) bool {
+	if len(b.UA.public) > 0 {
+		for _, re := range b.UA.public {
+			if re.MatchString(uri) {
+				return true
+			}
+		}
+	}
 	return false
 }
 
