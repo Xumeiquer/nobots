@@ -67,7 +67,11 @@ func parseUA(c *caddy.Controller) (*botUA, error) {
 				if !c.NextArg() {
 					return nil, c.ArgErr()
 				}
-				ua.re = append(ua.re, regexp.MustCompile(c.Val()))
+				re, err := regexp.Compile(c.Val())
+				if err != nil {
+					return nil, fmt.Errorf("%s", err)
+				}
+				ua.re = append(ua.re, re)
 			default:
 				ua.uas = append(ua.uas, c.Val())
 			}
