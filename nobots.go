@@ -86,7 +86,7 @@ func (b BotUA) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, error) {
 
 	// Check if the UA is a evil one
 	if b.IsEvil(rua) {
-		serveBomb(w, r, b.UA.bomb)
+		return serveBomb(w, r, b.UA.bomb)
 	}
 
 	// Nothing happens carry on with next stuff
