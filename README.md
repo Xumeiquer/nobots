@@ -49,4 +49,4 @@ cat 1T.gzip | gzip | gzip | gzip > 1T.gzipx4
  ```
 *NOTE*: The extension `.gzipx2` or `.gzipx4` is only to highlight how many times the file was compressed.
 
-
+[![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M625UW0)
